@@ -2,126 +2,155 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#131417" />
 <title>WORKOUT LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #16171a;
-    --panel: #1c1d21;
-    --panel-input: #101113;
-    --border: #26272b;
-    --border-input: #2e2f34;
-    --text: #e8e6e1;
-    --muted: #6b6b6b;
-    --accent: #c9a227;
-    --accent-dim: #2a230f;
-    --error: #e07a7a;
+    --bg: #131417;
+    --panel: #1b1c20;
+    --panel-2: #202126;
+    --panel-input: #0d0e10;
+    --border: #26272c;
+    --border-input: #303136;
+    --border-strong: #3a3b41;
+    --text: #eeece6;
+    --text-secondary: #a3a199;
+    --muted: #66655e;
+    --accent: #cda227;
+    --accent-hover: #ddb23a;
+    --accent-dim: #241f10;
+    --success: #5cb98a;
+    --error: #e2726f;
+    --radius: 10px;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
-  html { background: #16171a; }
+  html { background: var(--bg); }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
     font-family: 'IBM Plex Mono', monospace;
-    -webkit-tap-highlight-color: transparent;
     min-height: 100vh;
     min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
   }
   #app { min-height: 100vh; min-height: 100dvh; background: var(--bg); }
   input::placeholder { color: var(--muted); }
-  input:focus { outline: none; border-color: var(--accent) !important; }
-  button { font-family: inherit; }
-  a { color: inherit; }
+  input { -webkit-appearance: none; appearance: none; }
+  input:focus { outline: none; }
+  button { font-family: inherit; -webkit-appearance: none; appearance: none; transition: transform 0.12s ease, opacity 0.12s ease, background-color 0.15s ease, border-color 0.15s ease; }
+  button:active { transform: scale(0.97); }
+  a { color: inherit; text-decoration: none; }
   ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-thumb { background: #3d3d3d; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 
-  .page { min-height: 100vh; padding-bottom: 40px; }
-  header { padding: 20px 16px 14px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
-  .header-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+  .page { min-height: 100vh; padding-bottom: calc(40px + var(--safe-b)); }
+  header { padding: calc(16px + var(--safe-t)) 18px 14px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(19,20,23,0.92); backdrop-filter: blur(10px); z-index: 10; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
   .brand-row { display: flex; align-items: center; gap: 8px; }
-  .brand { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.14em; color: var(--accent); }
-  .view-tabs { display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--border-input); border-radius: 8px; padding: 3px; }
-  .view-tab { background: none; border: none; color: #9a9a9a; font-size: 11.5px; font-family: 'Oswald', sans-serif; font-weight: 500; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
-  .view-tab.active { background: var(--accent); color: var(--bg); }
+  .brand-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--accent-dim); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 12px; }
+  .brand { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.16em; color: var(--text); }
+  .view-tabs { display: flex; gap: 2px; background: var(--panel); border: 1px solid var(--border-input); border-radius: 9px; padding: 3px; }
+  .view-tab { background: none; border: none; color: var(--text-secondary); font-size: 11.5px; font-family: 'Oswald', sans-serif; font-weight: 500; letter-spacing: 0.02em; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+  .view-tab.active { background: var(--accent); color: #1a1509; }
   .date-nav { display: flex; align-items: center; justify-content: space-between; }
-  .nav-btn { background: var(--panel); border: 1px solid var(--border-input); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text); font-size: 16px; }
-  .date-box { display: flex; align-items: center; gap: 10px; }
-  .date-label { font-family: 'Oswald', sans-serif; font-size: 19px; font-weight: 600; }
-  .today-btn { background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; font-size: 11px; padding: 3px 8px; cursor: pointer; }
-  main { padding: 16px; max-width: 480px; margin: 0 auto; }
-  .error-banner { background: #2b1a1a; border: 1px solid #5a2a2a; color: var(--error); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
-  .sync-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); margin-bottom: 12px; }
-  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #4f9d69; }
-  .sync-dot.off { background: #5a5a5a; }
+  .nav-btn { background: var(--panel); border: 1px solid var(--border-input); border-radius: 9px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); font-size: 15px; }
+  .nav-btn:active { background: var(--panel-2); color: var(--text); }
+  .date-box { display: flex; align-items: center; gap: 9px; }
+  .date-label { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: 0.01em; }
+  .today-btn { background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; font-size: 10.5px; font-weight: 500; padding: 3px 8px; cursor: pointer; }
+  main { padding: 16px 16px 4px; max-width: 480px; margin: 0 auto; }
+  .error-banner { background: #241615; border: 1px solid #4a2321; color: var(--error); border-radius: var(--radius); padding: 10px 12px; font-size: 12.5px; line-height: 1.5; margin-bottom: 14px; }
+  .sync-badge { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--muted); margin-bottom: 14px; letter-spacing: 0.01em; }
+  .sync-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px rgba(92,185,138,0.14); }
 
-  .preset-section { margin-bottom: 16px; }
+  .preset-section { margin-bottom: 18px; }
   .day-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
-  .day-tab { flex: 1 1 28%; background: var(--panel); border: 1px solid var(--border-input); color: #9a9a9a; border-radius: 8px; padding: 9px 4px; font-size: 12.5px; font-family: 'Oswald', sans-serif; font-weight: 500; cursor: pointer; }
+  .day-tab { flex: 1 1 28%; background: var(--panel); border: 1px solid var(--border-input); color: var(--text-secondary); border-radius: 9px; padding: 10px 4px; font-size: 12.5px; font-family: 'Oswald', sans-serif; font-weight: 500; cursor: pointer; }
   .day-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
   .chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; background: var(--panel); border: 1px solid var(--border-input); border-radius: 8px; padding: 7px 10px; cursor: pointer; text-align: left; color: var(--text); }
-  .chip.selected { border-color: var(--accent); }
+  .chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; background: var(--panel); border: 1px solid var(--border-input); border-radius: 9px; padding: 8px 11px; cursor: pointer; text-align: left; color: var(--text); }
+  .chip.selected { border-color: var(--accent); background: var(--accent-dim); }
   .chip-name { font-size: 12.5px; color: var(--text); font-weight: 500; }
   .chip-target { font-size: 10.5px; color: var(--muted); }
-  .chip-note { font-size: 9.5px; color: #8a6d1a; max-width: 140px; line-height: 1.3; }
+  .chip-note { font-size: 9.5px; color: #a3801f; max-width: 150px; line-height: 1.35; margin-top: 1px; }
 
-  .detail-card { margin-top: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-  .detail-title { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
-  .detail-howto { font-size: 12.5px; color: #c9c7c1; line-height: 1.5; margin-bottom: 10px; }
-  .video-link { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); border-radius: 7px; padding: 7px 12px; font-size: 12px; text-decoration: none; font-weight: 500; }
+  .detail-card { margin-top: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 15px; }
+  .detail-title { font-family: 'Oswald', sans-serif; font-size: 13.5px; font-weight: 600; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.01em; }
+  .detail-howto { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 11px; }
+  .video-link { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 7px 13px; font-size: 11.5px; font-weight: 500; }
 
-  .form-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 22px; }
-  .input-exercise { width: 100%; background: var(--panel-input); border: 1px solid var(--border-input); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px; font-family: 'IBM Plex Mono', monospace; margin-bottom: 10px; }
-  .exercise-wrap { position: relative; }
-  .suggest-box { position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border: 1px solid var(--border-input); border-radius: 8px; margin-top: 2px; overflow: hidden; z-index: 5; }
-  .suggest-item { padding: 9px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
-  .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-  .field-group { display: flex; align-items: baseline; gap: 4px; background: var(--panel-input); border: 1px solid var(--border-input); border-radius: 8px; padding: 8px 10px; flex: 1; }
-  .input-num { background: none; border: none; color: var(--text); font-size: 16px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; width: 100%; min-width: 0; }
-  .field-unit { font-size: 11px; color: var(--muted); white-space: nowrap; }
-  .field-sep { color: #3d3d3d; font-size: 14px; }
-  .add-btn { width: 100%; background: var(--accent); color: var(--bg); border: none; border-radius: 8px; padding: 11px 0; font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.04em; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
-  .add-btn:disabled { opacity: 0.6; }
+  .form-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 15px; margin-bottom: 22px; }
+  .field-label { font-size: 9.5px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; display: block; font-family: 'Oswald', sans-serif; }
+  .exercise-wrap { position: relative; margin-bottom: 12px; }
+  .input-exercise { width: 100%; height: 44px; background: var(--panel-input); border: 1px solid var(--border-input); border-radius: 9px; padding: 0 13px; color: var(--text); font-size: 14px; font-family: 'IBM Plex Mono', monospace; }
+  .input-exercise:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(205,162,39,0.12); }
+  .suggest-box { position: absolute; top: calc(100% + 3px); left: 0; right: 0; background: var(--panel-2); border: 1px solid var(--border-input); border-radius: 9px; overflow: hidden; z-index: 5; box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
+  .suggest-item { padding: 10px 13px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .suggest-item:last-child { border-bottom: none; }
+  .suggest-item:active { background: var(--panel); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .field-group { background: var(--panel-input); border: 1px solid var(--border-input); border-radius: 9px; padding: 7px 10px; }
+  .field-group:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(205,162,39,0.12); }
+  .input-num { background: none; border: none; color: var(--text); font-size: 16px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; width: 100%; min-width: 0; padding: 0; height: 22px; }
+  .field-unit { font-size: 9.5px; color: var(--muted); white-space: nowrap; letter-spacing: 0.04em; }
+  .add-btn { width: 100%; height: 46px; background: var(--accent); color: #1a1509; border: none; border-radius: 10px; font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13.5px; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+  .add-btn:active { background: var(--accent-hover); }
+  .add-btn:disabled { opacity: 0.55; }
 
   .list-section { display: flex; flex-direction: column; gap: 8px; }
-  .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 0; color: #4a4a4a; font-size: 13px; }
-  .set-row { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; }
-  .set-main { display: flex; flex-direction: column; gap: 4px; }
+  .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 44px 0; color: var(--muted); font-size: 12.5px; }
+  .set-row { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; }
+  .set-main { display: flex; flex-direction: column; gap: 5px; }
   .set-name-row { display: flex; align-items: center; gap: 8px; }
-  .set-name { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500; }
-  .pr-badge { display: flex; align-items: center; gap: 3px; background: var(--accent-dim); color: var(--accent); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 5px; }
+  .set-name { font-family: 'Oswald', sans-serif; font-size: 14.5px; font-weight: 500; }
+  .pr-badge { display: flex; align-items: center; gap: 3px; background: var(--accent-dim); color: var(--accent); font-size: 9.5px; font-weight: 600; padding: 2px 6px; border-radius: 5px; letter-spacing: 0.02em; }
   .set-data { display: flex; align-items: baseline; gap: 4px; }
-  .set-weight { font-size: 15px; font-weight: 600; }
-  .set-unit { font-size: 11px; color: var(--muted); }
-  .set-sep { color: #3d3d3d; margin: 0 2px; }
-  .delete-btn { background: none; border: none; padding: 6px; cursor: pointer; color: var(--muted); font-size: 15px; }
+  .set-weight { font-size: 14.5px; font-weight: 600; }
+  .set-unit { font-size: 10.5px; color: var(--muted); }
+  .set-sep { color: var(--border-strong); margin: 0 3px; }
+  .delete-btn { background: none; border: none; padding: 8px; cursor: pointer; color: var(--muted); font-size: 14px; }
+  .delete-btn:active { color: var(--error); }
 
   /* calendar */
+  .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 18px; }
+  .donut { width: 74px; height: 74px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .donut-hole { width: 46px; height: 46px; border-radius: 50%; background: var(--panel); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .donut-num { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; line-height: 1; }
+  .donut-label { font-size: 8px; color: var(--muted); letter-spacing: 0.04em; margin-top: 2px; }
+  .bar-list { flex: 1; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+  .bar-name { font-size: 10.5px; color: var(--text-secondary); width: 46px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 6px; border-radius: 3px; background: var(--panel-input); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .bar-count { font-size: 10.5px; color: var(--muted); width: 14px; text-align: right; flex-shrink: 0; }
   .cal-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
-  .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #9a9a9a; }
-  .cal-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--text-secondary); }
+  .cal-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-  .cal-weekday { text-align: center; font-size: 10.5px; color: var(--muted); padding-bottom: 6px; font-family: 'Oswald', sans-serif; }
-  .cal-cell { aspect-ratio: 1; border-radius: 9px; border: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; padding: 4px 2px; position: relative; overflow: hidden; }
+  .cal-weekday { text-align: center; font-size: 10px; color: var(--muted); padding-bottom: 8px; font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
+  .cal-cell { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; padding: 4px 2px; position: relative; overflow: hidden; }
   .cal-cell.empty { visibility: hidden; cursor: default; }
   .cal-cell.today { border-color: var(--accent); }
   .cal-cell.selected { background: var(--accent-dim); border-color: var(--accent); }
   .cal-daynum { font-size: 12px; color: var(--text); font-family: 'IBM Plex Mono', monospace; z-index: 1; }
   .cal-dots { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 32px; z-index: 1; }
-  .cal-dot { width: 7px; height: 7px; border-radius: 50%; }
-  .cal-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; display: flex; }
+  .cal-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .cal-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; display: flex; }
   .cal-bar span { flex: 1; }
-  .cal-month-label { font-family: 'Oswald', sans-serif; font-size: 19px; font-weight: 600; }
-  .setup-banner { background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 16px; font-size: 13px; line-height: 1.6; color: #c9c7c1; }
+  .cal-month-label { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; }
+  .setup-banner { background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
   .setup-banner code { background: var(--panel-input); padding: 1px 5px; border-radius: 4px; color: var(--accent); }
 </style>
 </head>
 <body>
-<div id="app"><div style="padding:60px 16px;text-align:center;color:#6b6b6b;font-family:'IBM Plex Mono',monospace;font-size:13px;">불러오는 중…</div></div>
+<div id="app"><div style="padding:60px 16px;text-align:center;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:13px;">불러오는 중…</div></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -462,7 +491,7 @@
   function renderSetupBanner() {
     app.innerHTML = `
       <div class="page">
-        <header><div class="brand-row"><span style="font-size:18px;">🏋️</span><span class="brand">WORKOUT LOG</span></div></header>
+        <header><div class="brand-row"><span class="brand-mark">W</span><span class="brand">WORKOUT LOG</span></div></header>
         <main>
           <div class="setup-banner">
             <strong style="color:var(--accent);">Firebase 설정이 필요해요</strong><br/><br/>
@@ -482,7 +511,7 @@
       <header>
         <div class="header-top">
           <div class="brand-row">
-            <span style="font-size:18px;">🏋️</span>
+            <span class="brand-mark">W</span>
             <span class="brand">WORKOUT LOG</span>
           </div>
           <div class="view-tabs">
@@ -550,6 +579,7 @@
 
       <div class="form-card">
         <div class="exercise-wrap">
+          <span class="field-label">운동</span>
           <input class="input-exercise" id="exerciseInput" placeholder="운동 이름 (예: 벤치프레스)" value="${esc(state.form.exercise)}" autocomplete="off" />
           ${state.showSuggest && filteredSuggestions.length > 0 ? `
             <div class="suggest-box">
@@ -558,19 +588,26 @@
           ` : ""}
         </div>
         <div class="form-row">
-          <div class="field-group">
-            <input class="input-num" id="weightInput" type="number" inputmode="decimal" placeholder="0" value="${esc(state.form.weight)}" />
-            <span class="field-unit">kg</span>
+          <div>
+            <span class="field-label">무게</span>
+            <div class="field-group">
+              <input class="input-num" id="weightInput" type="number" inputmode="decimal" placeholder="0" value="${esc(state.form.weight)}" />
+              <span class="field-unit">KG</span>
+            </div>
           </div>
-          <span class="field-sep">×</span>
-          <div class="field-group">
-            <input class="input-num" id="repsInput" type="number" inputmode="numeric" placeholder="0" value="${esc(state.form.reps)}" />
-            <span class="field-unit">회</span>
+          <div>
+            <span class="field-label">횟수</span>
+            <div class="field-group">
+              <input class="input-num" id="repsInput" type="number" inputmode="numeric" placeholder="0" value="${esc(state.form.reps)}" />
+              <span class="field-unit">회</span>
+            </div>
           </div>
-          <span class="field-sep">·</span>
-          <div class="field-group">
-            <input class="input-num" id="setCountInput" type="number" inputmode="numeric" placeholder="1" value="${esc(state.form.setCount)}" />
-            <span class="field-unit">세트</span>
+          <div>
+            <span class="field-label">세트</span>
+            <div class="field-group">
+              <input class="input-num" id="setCountInput" type="number" inputmode="numeric" placeholder="1" value="${esc(state.form.setCount)}" />
+              <span class="field-unit">SET</span>
+            </div>
           </div>
         </div>
         <button class="add-btn" id="addBtn">+ 기록 추가</button>
@@ -607,6 +644,44 @@
     `;
   }
 
+  function renderStatCard() {
+    const counts = {};
+    Object.values(state.monthData).forEach((sets) => {
+      const parts = Array.from(new Set(sets.map((s) => partOf(s.exercise))));
+      parts.forEach((p) => { counts[p] = (counts[p] || 0) + 1; });
+    });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    if (total === 0) return "";
+    const order = Object.keys(PART_COLORS).filter((k) => k !== "기타" && counts[k]);
+    let acc = 0;
+    const gradientStops = order.map((p) => {
+      const pct = (counts[p] / total) * 100;
+      const from = acc;
+      acc += pct;
+      return `${PART_COLORS[p]} ${from}% ${acc}%`;
+    }).join(", ");
+    const maxCount = Math.max(...order.map((p) => counts[p]));
+    return `
+      <div class="stat-card">
+        <div class="donut" style="background:conic-gradient(${gradientStops});">
+          <div class="donut-hole">
+            <span class="donut-num">${total}</span>
+            <span class="donut-label">SESSIONS</span>
+          </div>
+        </div>
+        <div class="bar-list">
+          ${order.map((p) => `
+            <div class="bar-row">
+              <span class="bar-name">${esc(p)}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${(counts[p] / maxCount) * 100}%;background:${PART_COLORS[p]}"></div></div>
+              <span class="bar-count">${counts[p]}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
   function renderCalendarView() {
     const [y, m] = state.calendarMonth.split("-").map(Number);
     const firstDay = new Date(y, m - 1, 1);
@@ -620,6 +695,7 @@
     return `
       ${renderSyncBadge()}
       ${state.error ? `<div class="error-banner">${esc(state.error)}</div>` : ""}
+      ${state.loadingMonth ? "" : renderStatCard()}
       <div class="cal-legend">
         ${Object.keys(PART_COLORS).filter((k) => k !== "기타").map((part) => `
           <div class="cal-legend-item"><span class="cal-legend-dot" style="background:${PART_COLORS[part]}"></span>${esc(part)}</div>
@@ -741,4 +817,3 @@
 </script>
 </body>
 </html>
-
