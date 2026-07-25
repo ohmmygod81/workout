@@ -147,6 +147,27 @@
   .cal-month-label { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; }
   .setup-banner { background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
   .setup-banner code { background: var(--panel-input); padding: 1px 5px; border-radius: 4px; color: var(--accent); }
+
+  /* body measurements */
+  .m-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .input-date { width: 100%; height: 44px; background: var(--panel-input); border: 1px solid var(--border-input); border-radius: 9px; padding: 0 12px; color: var(--text); font-size: 13px; font-family: 'IBM Plex Mono', monospace; }
+  .input-date:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,107,133,0.18); }
+  .m-part-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .m-part-chip { background: var(--panel-input); border: 1px solid var(--border-input); color: var(--text-secondary); border-radius: 999px; padding: 7px 13px; font-size: 12px; cursor: pointer; }
+  .m-part-chip.selected { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .m-group { margin-bottom: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 13px 15px; }
+  .m-group-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+  .m-group-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .m-group-title { font-family: 'Oswald', sans-serif; font-size: 13.5px; font-weight: 600; color: var(--text); letter-spacing: 0.02em; }
+  .m-group-latest { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .m-row { padding: 9px 0; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+  .m-row:first-child { border-top: none; padding-top: 0; }
+  .m-date { font-size: 11.5px; color: var(--muted); }
+  .m-value-row { display: flex; align-items: baseline; gap: 8px; }
+  .m-value { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 600; }
+  .m-delta { font-size: 11px; font-weight: 500; padding: 1px 6px; border-radius: 5px; }
+  .m-delta.up { color: var(--success); background: rgba(34,160,107,0.12); }
+  .m-delta.down { color: var(--error); background: rgba(207,74,68,0.12); }
 </style>
 </head>
 <body>
@@ -155,7 +176,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import {
-    getFirestore, doc, getDoc, setDoc, onSnapshot,
+    getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot,
     collection, query, where, documentId,
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
@@ -277,6 +298,8 @@
     return `rgba(${r},${g},${b},${alpha})`;
   };
 
+  const BODY_PART_PRESETS = ["팔(알통)", "가슴둘레", "허리둘레", "허벅지", "종아리", "어깨너비", "체중"];
+
   /* ---------- Firestore-backed data functions ---------- */
   async function fetchDay(date) {
     const snap = await fb.getDoc(fb.doc(db, "days", date));
@@ -317,10 +340,16 @@
   async function saveLast(name, weight, reps) {
     await fb.setDoc(fb.doc(db, "last", name), { weight, reps });
   }
+  async function saveMeasurement(id, date, part, value) {
+    await fb.setDoc(fb.doc(db, "measurements", id), { date, part, value });
+  }
+  async function deleteMeasurement(id) {
+    await fb.deleteDoc(fb.doc(db, "measurements", id));
+  }
 
   /* ---------- state ---------- */
   const state = {
-    view: "day", // "day" | "calendar"
+    view: "day", // "day" | "calendar" | "body"
     date: todayStr(),
     calendarMonth: todayStr().slice(0, 7),
     sets: [],
@@ -335,17 +364,38 @@
     loadingMonth: true,
     prCache: {},
     prFetching: new Set(),
+    measurements: [], // {id, date, part, value}
+    loadingMeasurements: true,
+    mForm: { date: todayStr(), part: "", value: "" },
+    mShowSuggest: false,
+    expandedPart: null,
   };
 
   let unsubDay = null;
   let unsubMonth = null;
   let unsubExercises = null;
+  let unsubMeasurements = null;
 
   function subscribeExercises() {
     if (!firebaseReady) return;
     unsubExercises = fb.onSnapshot(fb.doc(db, "meta", "exercises"),
       (snap) => { state.exerciseList = snap.exists() ? (snap.data().names || []) : []; render(); },
       () => {}
+    );
+  }
+
+  function subscribeMeasurements() {
+    if (!firebaseReady) return;
+    state.loadingMeasurements = true;
+    unsubMeasurements = fb.onSnapshot(fb.collection(db, "measurements"),
+      (snap) => {
+        const list = [];
+        snap.forEach((docSnap) => { list.push({ id: docSnap.id, ...docSnap.data() }); });
+        state.measurements = list;
+        state.loadingMeasurements = false;
+        render();
+      },
+      (err) => { state.error = "동기화 오류: " + err.message; state.loadingMeasurements = false; render(); }
     );
   }
 
@@ -473,6 +523,32 @@
     render();
   }
 
+  async function handleAddMeasurement() {
+    const part = state.mForm.part.trim();
+    const value = parseFloat(state.mForm.value);
+    const date = state.mForm.date;
+    if (!part || isNaN(value) || !date) return;
+    const id = `${date}__${part}`;
+    try {
+      await saveMeasurement(id, date, part, value);
+      state.mForm = { date, part: "", value: "" };
+      state.error = null;
+    } catch (e) {
+      state.error = "저장 실패: " + (e.message || "다시 시도해줘.");
+    }
+    render();
+  }
+
+  async function handleDeleteMeasurement(id) {
+    try {
+      await deleteMeasurement(id);
+      state.error = null;
+    } catch (e) {
+      state.error = "삭제 실패: " + (e.message || "다시 시도해줘.");
+    }
+    render();
+  }
+
   async function fetchPrAndCache(name) {
     if (state.prCache[name] !== undefined || state.prFetching.has(name)) return;
     state.prFetching.add(name);
@@ -517,6 +593,7 @@
           <div class="view-tabs">
             <button class="view-tab ${state.view === "day" ? "active" : ""}" id="tabDay">일별</button>
             <button class="view-tab ${state.view === "calendar" ? "active" : ""}" id="tabCalendar">달력</button>
+            <button class="view-tab ${state.view === "body" ? "active" : ""}" id="tabBody">신체</button>
           </div>
         </div>
         ${state.view === "day" ? `
@@ -528,11 +605,15 @@
             </div>
             <button class="nav-btn" id="nextDay">›</button>
           </div>
-        ` : `
+        ` : state.view === "calendar" ? `
           <div class="date-nav">
             <button class="nav-btn" id="prevMonth">‹</button>
             <span class="cal-month-label">${esc(monthLabel(state.calendarMonth))}</span>
             <button class="nav-btn" id="nextMonth">›</button>
+          </div>
+        ` : `
+          <div class="date-nav">
+            <span class="cal-month-label">신체 사이즈 기록</span>
           </div>
         `}
       </header>
@@ -727,9 +808,128 @@
     `;
   }
 
+  function buildSparkline(points, color) {
+    const w = 96, h = 34, pad = 4;
+    if (points.length === 1) {
+      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><circle cx="${w / 2}" cy="${h / 2}" r="3" fill="${color}" /></svg>`;
+    }
+    const values = points.map((p) => p.value);
+    const min = Math.min(...values), max = Math.max(...values);
+    const range = max - min || 1;
+    const stepX = (w - pad * 2) / (points.length - 1);
+    const coords = points.map((p, i) => {
+      const x = pad + i * stepX;
+      const y = h - pad - ((p.value - min) / range) * (h - pad * 2);
+      return [x, y];
+    });
+    const linePath = coords.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+    const areaPath = `${linePath} L${coords[coords.length - 1][0].toFixed(1)},${h} L${coords[0][0].toFixed(1)},${h} Z`;
+    const last = coords[coords.length - 1];
+    return `
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <path d="${areaPath}" fill="${color}" opacity="0.12" />
+        <path d="${linePath}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" />
+        <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.4" fill="${color}" />
+      </svg>
+    `;
+  }
+
+  function renderBodyView() {
+    const filteredSuggestions = BODY_PART_PRESETS.filter(
+      (e) => state.mForm.part && e.includes(state.mForm.part) && e !== state.mForm.part
+    );
+
+    const groups = {};
+    state.measurements.forEach((m) => {
+      if (!groups[m.part]) groups[m.part] = [];
+      groups[m.part].push(m);
+    });
+    Object.values(groups).forEach((arr) => arr.sort((a, b) => (a.date < b.date ? 1 : -1)));
+    const partNames = Object.keys(groups).sort();
+
+    return `
+      ${renderSyncBadge()}
+      ${state.error ? `<div class="error-banner">${esc(state.error)}</div>` : ""}
+
+      <div class="form-card">
+        <div class="m-form-row">
+          <div>
+            <span class="field-label">날짜</span>
+            <input class="input-date" id="mDateInput" type="date" value="${esc(state.mForm.date)}" />
+          </div>
+          <div>
+            <span class="field-label">사이즈</span>
+            <div class="field-group">
+              <input class="input-num" id="mValueInput" type="number" inputmode="decimal" placeholder="0" value="${esc(state.mForm.value)}" />
+              <span class="field-unit">CM</span>
+            </div>
+          </div>
+        </div>
+        <div class="exercise-wrap">
+          <span class="field-label">부위</span>
+          <input class="input-exercise" id="mPartInput" placeholder="예: 팔(알통), 허벅지..." value="${esc(state.mForm.part)}" autocomplete="off" />
+          ${state.mShowSuggest && filteredSuggestions.length > 0 ? `
+            <div class="suggest-box">
+              ${filteredSuggestions.slice(0, 6).map((s) => `<div class="suggest-item" data-m-suggest="${esc(s)}">${esc(s)}</div>`).join("")}
+            </div>
+          ` : ""}
+        </div>
+        <div class="m-part-chips">
+          ${BODY_PART_PRESETS.map((p) => `
+            <button class="m-part-chip ${state.mForm.part === p ? "selected" : ""}" data-m-chip="${esc(p)}">${esc(p)}</button>
+          `).join("")}
+        </div>
+        <button class="add-btn" id="mAddBtn">+ 기록 추가</button>
+      </div>
+
+      <div class="list-section">
+        ${state.loadingMeasurements ? `<div class="empty-state"><span>불러오는 중...</span></div>` :
+          partNames.length === 0 ? `<div class="empty-state"><span>아직 기록이 없어. 위에서 추가해봐.</span></div>` :
+          partNames.map((part, gi) => {
+            const asc = [...groups[part]].sort((a, b) => (a.date > b.date ? 1 : -1));
+            const latest = groups[part][0];
+            const earliest = asc[0];
+            const totalDiff = Math.round((latest.value - earliest.value) * 10) / 10;
+            const sparkColor = ["#5b6b85", "#4f9d69", "#c8514c", "#a778d9", "#3f8fb0"][gi % 5];
+            return `
+            <div class="m-group">
+              <div class="m-group-header" data-m-toggle="${esc(part)}">
+                <div class="m-group-left">
+                  <div class="m-group-title">${esc(part)}</div>
+                  <div class="m-group-latest">${latest.value}cm ${totalDiff !== 0 ? `<span class="m-delta ${totalDiff > 0 ? "up" : "down"}">${totalDiff > 0 ? "+" : ""}${totalDiff}</span>` : ""}</div>
+                </div>
+                ${buildSparkline(asc, sparkColor)}
+              </div>
+              ${state.expandedPart === part ? `<div style="margin-top:12px;">${groups[part].map((m, idx) => {
+                const prev = groups[part][idx + 1];
+                let delta = "";
+                if (prev) {
+                  const diff = Math.round((m.value - prev.value) * 10) / 10;
+                  if (diff !== 0) delta = `<span class="m-delta ${diff > 0 ? "up" : "down"}">${diff > 0 ? "+" : ""}${diff}cm</span>`;
+                }
+                return `
+                  <div class="m-row">
+                    <span class="m-date">${esc(fmtDateLabel(m.date))}</span>
+                    <div class="m-value-row">
+                      <span class="m-value">${m.value}<span style="font-size:11px;color:var(--muted);"> cm</span></span>
+                      ${delta}
+                      <button class="delete-btn" data-m-delete="${esc(m.id)}">✕</button>
+                    </div>
+                  </div>
+                `;
+              }).join("")}</div>` : ""}
+            </div>
+          `;
+          }).join("")
+        }
+      </div>
+    `;
+  }
+
   function render() {
     if (!firebaseReady) { renderSetupBanner(); return; }
-    app.innerHTML = `<div class="page">${renderHeader()}<main>${state.view === "day" ? renderDayView() : renderCalendarView()}</main></div>`;
+    const viewHtml = state.view === "day" ? renderDayView() : state.view === "calendar" ? renderCalendarView() : renderBodyView();
+    app.innerHTML = `<div class="page">${renderHeader()}<main>${viewHtml}</main></div>`;
     attachEvents();
   }
 
@@ -746,6 +946,8 @@
       subscribeMonth(state.calendarMonth);
       render();
     };
+    const tabBody = q("#tabBody");
+    if (tabBody) tabBody.onclick = () => { state.view = "body"; render(); };
 
     const prev = q("#prevDay");
     if (prev) prev.onclick = () => goToDay(addDays(state.date, -1));
@@ -799,6 +1001,35 @@
     qa("[data-delete]").forEach((btn) => {
       btn.onclick = () => handleDelete(btn.getAttribute("data-delete"));
     });
+
+    const mDateInput = q("#mDateInput");
+    if (mDateInput) mDateInput.oninput = (e) => { state.mForm.date = e.target.value; };
+    const mValueInput = q("#mValueInput");
+    if (mValueInput) mValueInput.oninput = (e) => { state.mForm.value = e.target.value; };
+    const mPartInput = q("#mPartInput");
+    if (mPartInput) {
+      mPartInput.oninput = (e) => { state.mForm.part = e.target.value; state.mShowSuggest = true; render(); focusEnd("mPartInput"); };
+      mPartInput.onfocus = () => { state.mShowSuggest = true; };
+      mPartInput.onblur = () => { setTimeout(() => { state.mShowSuggest = false; render(); }, 150); };
+    }
+    qa("[data-m-suggest]").forEach((el) => {
+      el.onmousedown = () => { state.mForm.part = el.getAttribute("data-m-suggest"); render(); };
+    });
+    qa("[data-m-chip]").forEach((btn) => {
+      btn.onclick = () => { state.mForm.part = btn.getAttribute("data-m-chip"); render(); };
+    });
+    const mAddBtn = q("#mAddBtn");
+    if (mAddBtn) mAddBtn.onclick = handleAddMeasurement;
+    qa("[data-m-delete]").forEach((btn) => {
+      btn.onclick = (ev) => { ev.stopPropagation(); handleDeleteMeasurement(btn.getAttribute("data-m-delete")); };
+    });
+    qa("[data-m-toggle]").forEach((el) => {
+      el.onclick = () => {
+        const part = el.getAttribute("data-m-toggle");
+        state.expandedPart = state.expandedPart === part ? null : part;
+        render();
+      };
+    });
   }
 
   function focusEnd(id) {
@@ -811,9 +1042,10 @@
   if (firebaseReady) {
     subscribeExercises();
     subscribeDay(state.date);
+    subscribeMeasurements();
   }
   render();
-})({ initializeApp, getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, documentId });
+})({ initializeApp, getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, documentId });
 </script>
 </body>
 </html>
