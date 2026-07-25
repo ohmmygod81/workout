@@ -1,1 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>WORKOUT LOG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #16171a;
+    --panel: #1c1d21;
+    --panel-input: #101113;
+    --border: #26272b;
+    --border-input: #2e2f34;
+    --text: #e8e6e1;
+    --muted: #6b6b6b;
+    --accent: #c9a227;
+    --accent-dim: #2a230f;
+    --error: #e07a7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  html { background: #16171a; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  #app { min-height: 100vh; min-height: 100dvh; background: var(--bg); }
+  input::placeholder { color: var(--muted); }
+  input:focus { outline: none; border-color: var(--accent) !important; }
+  button { font-family: inherit; }
+  a { color: inherit; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: #3d3d3d; border-radius: 3px; }
+
+  .page { min-height: 100vh; padding-bottom: 40px; }
+  header { padding: 20px 16px 14px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+  .brand-row { display: flex; align-items: center; gap: 8px; }
+  .brand { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.14em; color: var(--accent); }
+  .view-tabs { display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--border-input); border-radius: 8px; padding: 3px; }
+  .view-tab { background: none; border: none; color: #9a9a9a; font-size: 11.5px; font-family: 'Oswald', sans-serif; font-weight: 500; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+  .view-tab.active { background: var(--accent); color: var(--bg); }
+  .date-nav { display: flex; align-items: center; justify-content: space-between; }
+  .nav-btn { background: var(--panel); border: 1px solid var(--border-input); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text); font-size: 16px; }
+  .date-box { display: flex; align-items: center; gap: 10px; }
+  .date-label { font-family: 'Oswald', sans-serif; font-size: 19px; font-weight: 600; }
+  .today-btn { background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; font-size: 11px; padding: 3px 8px; cursor: pointer; }
+  main { padding: 16px; max-width: 480px; margin: 0 auto; }
+  .error-banner { background: #2b1a1a; border: 1px solid #5a2a2a; color: var(--error); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+  .sync-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #4f9d69; }
+  .sync-dot.off { background: #5a5a5a; }
+
+  .preset-section { margin-bottom: 16px; }
+  .day-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .day-tab { flex: 1 1 28%; background: var(--panel); border: 1px solid var(--border-input); color: #9a9a9a; border-radius: 8px; padding: 9px 4px; font-size: 12.5px; font-family: 'Oswald', sans-serif; font-weight: 500; cursor: pointer; }
+  .day-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; background: var(--panel); border: 1px solid var(--border-input); border-radius: 8px; padding: 7px 10px; cursor: pointer; text-align: left; color: var(--text); }
+  .chip.selected { border-color: var(--accent); }
+  .chip-name { font-size: 12.5px; color: var(--text); font-weight: 500; }
+  .chip-target { font-size: 10.5px; color: var(--muted); }
+  .chip-note { font-size: 9.5px; color: #8a6d1a; max-width: 140px; line-height: 1.3; }
+
+  .detail-card { margin-top: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .detail-title { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+  .detail-howto { font-size: 12.5px; color: #c9c7c1; line-height: 1.5; margin-bottom: 10px; }
+  .video-link { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); border-radius: 7px; padding: 7px 12px; font-size: 12px; text-decoration: none; font-weight: 500; }
+
+  .form-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 22px; }
+  .input-exercise { width: 100%; background: var(--panel-input); border: 1px solid var(--border-input); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px; font-family: 'IBM Plex Mono', monospace; margin-bottom: 10px; }
+  .exercise-wrap { position: relative; }
+  .suggest-box { position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border: 1px solid var(--border-input); border-radius: 8px; margin-top: 2px; overflow: hidden; z-index: 5; }
+  .suggest-item { padding: 9px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .field-group { display: flex; align-items: baseline; gap: 4px; background: var(--panel-input); border: 1px solid var(--border-input); border-radius: 8px; padding: 8px 10px; flex: 1; }
+  .input-num { background: none; border: none; color: var(--text); font-size: 16px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; width: 100%; min-width: 0; }
+  .field-unit { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .field-sep { color: #3d3d3d; font-size: 14px; }
+  .add-btn { width: 100%; background: var(--accent); color: var(--bg); border: none; border-radius: 8px; padding: 11px 0; font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.04em; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+  .add-btn:disabled { opacity: 0.6; }
+
+  .list-section { display: flex; flex-direction: column; gap: 8px; }
+  .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 0; color: #4a4a4a; font-size: 13px; }
+  .set-row { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .set-main { display: flex; flex-direction: column; gap: 4px; }
+  .set-name-row { display: flex; align-items: center; gap: 8px; }
+  .set-name { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500; }
+  .pr-badge { display: flex; align-items: center; gap: 3px; background: var(--accent-dim); color: var(--accent); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 5px; }
+  .set-data { display: flex; align-items: baseline; gap: 4px; }
+  .set-weight { font-size: 15px; font-weight: 600; }
+  .set-unit { font-size: 11px; color: var(--muted); }
+  .set-sep { color: #3d3d3d; margin: 0 2px; }
+  .delete-btn { background: none; border: none; padding: 6px; cursor: pointer; color: var(--muted); font-size: 15px; }
+
+  /* calendar */
+  .cal-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #9a9a9a; }
+  .cal-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .cal-weekday { text-align: center; font-size: 10.5px; color: var(--muted); padding-bottom: 6px; font-family: 'Oswald', sans-serif; }
+  .cal-cell { aspect-ratio: 1; border-radius: 9px; border: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; padding: 4px 2px; position: relative; overflow: hidden; }
+  .cal-cell.empty { visibility: hidden; cursor: default; }
+  .cal-cell.today { border-color: var(--accent); }
+  .cal-cell.selected { background: var(--accent-dim); border-color: var(--accent); }
+  .cal-daynum { font-size: 12px; color: var(--text); font-family: 'IBM Plex Mono', monospace; z-index: 1; }
+  .cal-dots { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 32px; z-index: 1; }
+  .cal-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .cal-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; display: flex; }
+  .cal-bar span { flex: 1; }
+  .cal-month-label { font-family: 'Oswald', sans-serif; font-size: 19px; font-weight: 600; }
+  .setup-banner { background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 16px; font-size: 13px; line-height: 1.6; color: #c9c7c1; }
+  .setup-banner code { background: var(--panel-input); padding: 1px 5px; border-radius: 4px; color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="app"><div style="padding:60px 16px;text-align:center;color:#6b6b6b;font-family:'IBM Plex Mono',monospace;font-size:13px;">불러오는 중…</div></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, onSnapshot,
+    collection, query, where, documentId,
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+(function (fb) {
+  "use strict";
+
+  /* ============================================================
+     FIREBASE 설정 — 아래 값을 본인 Firebase 프로젝트 값으로 교체하세요.
+     Firebase 콘솔 > 프로젝트 설정 > 일반 > 내 앱 > SDK 설정 및 구성 에서 확인 가능.
+     이 값들은 "비밀키"가 아니라 클라이언트 식별용이라 GitHub 공개 저장소에
+     올라가도 괜찮습니다. 대신 Firestore 보안 규칙(Rules)으로 접근을 제어하세요.
+     ============================================================ */
+  const firebaseConfig = {
+    apiKey: "AIzaSyBbm0hy_qz_85UCSu2uLUCUN6zYhs-sAqo",
+    authDomain: "hoho-a270e.firebaseapp.com",
+    projectId: "hoho-a270e",
+    storageBucket: "hoho-a270e.firebasestorage.app",
+    messagingSenderId: "240112645938",
+    appId: "1:240112645938:web:7bc00ffa220c07327ec92b",
+  };
+
+  let db = null;
+  let firebaseReady = false;
+  let firebaseInitError = null;
+
+  function initFirebase() {
+    if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+      firebaseInitError = "SETUP_NEEDED";
+      return;
+    }
+    try {
+      const app = fb.initializeApp(firebaseConfig);
+      db = fb.getFirestore(app);
+      firebaseReady = true;
+    } catch (e) {
+      firebaseInitError = e.message || String(e);
+    }
+  }
+
+  /* ---------- date helpers ---------- */
+  const pad = (n) => String(n).padStart(2, "0");
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  const fmtDateLabel = (dateStr) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    const days = ["일", "월", "화", "수", "목", "금", "토"];
+    return `${m}월 ${d}일 (${days[dt.getDay()]})`;
+  };
+  const addDays = (dateStr, n) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + n);
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+  };
+  const addMonths = (yearMonth, n) => {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const dt = new Date(y, m - 1 + n, 1);
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}`;
+  };
+  const monthLabel = (yearMonth) => {
+    const [y, m] = yearMonth.split("-").map(Number);
+    return `${y}년 ${m}월`;
+  };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  /* ---------- routine presets ---------- */
+  const PRESETS = [
+    { label: "하체", exercises: [
+      { name: "맨몸 스쿼트", reps: 20, setCount: 3, howTo: "발은 어깨너비, 무릎이 발끝 넘어가지 않게 앉으며 가슴은 세운 채 유지" },
+      { name: "레그프레스", reps: 20, setCount: 3, note: "1칸", howTo: "발판 중앙에 발 어깨너비로 위치, 무릎이 완전히 펴지지 않게 컨트롤" },
+      { name: "레그컬", reps: 20, setCount: 3, howTo: "허리가 뜨지 않게 고정하고 발목을 몸쪽으로 당기며 햄스트링 수축" },
+      { name: "레그익스텐션", reps: 20, setCount: 3, howTo: "패드가 발목 위에 오게 조절, 반동 없이 무릎을 천천히 펴기" },
+    ]},
+    { label: "어깨", exercises: [
+      { name: "사이드 레터럴레이즈", reps: 15, setCount: 3, note: "삼각근 측면 고립, 가벼운 무게로 정자세", howTo: "팔꿈치를 살짝 굽힌 채 새끼손가락이 먼저 올라가듯 어깨 높이까지만 들기" },
+      { name: "덤벨 숄더프레스", reps: 12, setCount: 3, note: "어깨 전면+삼각근 전체", howTo: "허리를 과하게 젖히지 않고 덤벨을 귀 옆에서 정수리 위로 밀어올리기" },
+      { name: "페이스풀", reps: 15, setCount: 3, note: "후면삼각근+어깨 안정성", howTo: "케이블을 얼굴 쪽으로 당기며 팔꿈치를 높게 벌려 견갑골 모으기" },
+    ]},
+    { label: "가슴", exercises: [
+      { name: "스미스벤치프레스", reps: 20, setCount: 3, howTo: "견갑골을 모아 고정하고 바가 가슴 중앙에 닿을 정도로 내렸다가 밀기" },
+      { name: "인클라인덤벨프레스", reps: 20, setCount: 3, howTo: "벤치 각도 30도 내외, 팔꿈치가 몸통과 45도 정도 벌어지게 프레스" },
+      { name: "버터플라이", reps: 20, setCount: 3, howTo: "팔꿈치를 살짝 굽힌 채 반원 그리듯 모아 가슴 안쪽 조이기" },
+      { name: "케이블 플라이", reps: 20, setCount: 3, howTo: "몸을 살짝 앞으로 기울이고 양팔을 아래에서 모으며 가슴 수축" },
+    ]},
+    { label: "등", exercises: [
+      { name: "렛풀다운", reps: 20, setCount: 3, howTo: "가슴을 펴고 바를 쇄골 쪽으로 당기며 광배근으로 당기는 느낌 유지" },
+      { name: "어시스트 친업", reps: 10, setCount: 3, howTo: "어시스트 무게를 몸무게 대비 조절, 턱이 바 위로 오도록 끝까지 당기기" },
+      { name: "티바로우", reps: 20, setCount: 3, howTo: "허리는 곧게 편 채 팔꿈치를 몸통에 붙여 배꼽 쪽으로 당기기" },
+      { name: "시티드로우", reps: 20, setCount: 3, howTo: "상체 반동 없이 견갑골을 모으며 손잡이를 명치 쪽으로 당기기" },
+    ]},
+    { label: "이두+삼두", exercises: [
+      { name: "이지바 컬", reps: 20, setCount: 3, howTo: "팔꿈치 고정하고 반동 없이 컬, 내릴 때 천천히 컨트롤" },
+      { name: "덤벨 해머컬", reps: 20, setCount: 3, howTo: "손바닥이 서로 마주보게 잡고 팔꿈치 고정한 채 들어올리기" },
+      { name: "케이블 푸쉬다운", reps: 20, setCount: 3, howTo: "팔꿈치를 옆구리에 고정, 팔뚝만 사용해 끝까지 펴기" },
+      { name: "스컬크러셔", reps: 20, setCount: 3, howTo: "팔꿈치는 고정한 채 이마 위쪽으로 내렸다가 삼두로 밀어올리기" },
+    ]},
+  ];
+  const youtubeSearchUrl = (name) => `https://www.youtube.com/results?search_query=${encodeURIComponent(name + " 자세")}`;
+
+  const EXERCISE_TO_PART = {};
+  PRESETS.forEach((day) => { day.exercises.forEach((ex) => { EXERCISE_TO_PART[ex.name] = day.label; }); });
+  const PART_COLORS = {
+    "하체": "#4f9d69",
+    "어깨": "#5b8dd9",
+    "가슴": "#d9605b",
+    "등": "#a778d9",
+    "이두+삼두": "#d98f3f",
+    "기타": "#6b6b6b",
+  };
+  const partOf = (exerciseName) => EXERCISE_TO_PART[exerciseName] || "기타";
+  const hexToRgba = (hex, alpha) => {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
+
+  /* ---------- Firestore-backed data functions ---------- */
+  async function fetchDay(date) {
+    const snap = await fb.getDoc(fb.doc(db, "days", date));
+    return snap.exists() ? (snap.data().sets || []) : [];
+  }
+  async function saveDay(date, sets) {
+    await fb.setDoc(fb.doc(db, "days", date), { sets });
+  }
+  async function fetchExerciseList() {
+    const snap = await fb.getDoc(fb.doc(db, "meta", "exercises"));
+    return snap.exists() ? (snap.data().names || []) : [];
+  }
+  async function addExerciseToIndex(name) {
+    const list = await fetchExerciseList();
+    if (!list.includes(name)) {
+      list.push(name);
+      await fb.setDoc(fb.doc(db, "meta", "exercises"), { names: list });
+    }
+    return list;
+  }
+  async function fetchPr(name) {
+    const snap = await fb.getDoc(fb.doc(db, "prs", name));
+    return snap.exists() ? snap.data() : null;
+  }
+  async function checkAndSavePr(name, weight, reps, date) {
+    const current = await fetchPr(name);
+    if (!current || weight > current.weight) {
+      const newPr = { weight, reps, date };
+      await fb.setDoc(fb.doc(db, "prs", name), newPr);
+      return newPr;
+    }
+    return current;
+  }
+  async function fetchLast(name) {
+    const snap = await fb.getDoc(fb.doc(db, "last", name));
+    return snap.exists() ? snap.data() : null;
+  }
+  async function saveLast(name, weight, reps) {
+    await fb.setDoc(fb.doc(db, "last", name), { weight, reps });
+  }
+
+  /* ---------- state ---------- */
+  const state = {
+    view: "day", // "day" | "calendar"
+    date: todayStr(),
+    calendarMonth: todayStr().slice(0, 7),
+    sets: [],
+    exerciseList: [],
+    monthData: {}, // date -> sets[]
+    activeDay: null,
+    selectedExercise: null,
+    form: { exercise: "", weight: "", reps: "", setCount: "" },
+    showSuggest: false,
+    error: null,
+    loadingDay: true,
+    loadingMonth: true,
+    prCache: {},
+    prFetching: new Set(),
+  };
+
+  let unsubDay = null;
+  let unsubMonth = null;
+  let unsubExercises = null;
+
+  function subscribeExercises() {
+    if (!firebaseReady) return;
+    unsubExercises = fb.onSnapshot(fb.doc(db, "meta", "exercises"),
+      (snap) => { state.exerciseList = snap.exists() ? (snap.data().names || []) : []; render(); },
+      () => {}
+    );
+  }
+
+  function subscribeDay(date) {
+    if (unsubDay) { unsubDay(); unsubDay = null; }
+    if (!firebaseReady) return;
+    state.loadingDay = true;
+    const timeoutId = setTimeout(() => {
+      if (state.loadingDay) {
+        state.error = "Firebase 서버 응답이 없어. 실제 브라우저(사파리)로 열었는지, GitHub Pages 주소로 접속했는지, Firestore Database가 생성됐는지 확인해줘.";
+        state.loadingDay = false;
+        render();
+      }
+    }, 8000);
+    unsubDay = fb.onSnapshot(fb.doc(db, "days", date),
+      (snap) => {
+        clearTimeout(timeoutId);
+        state.sets = snap.exists() ? (snap.data().sets || []) : [];
+        state.loadingDay = false;
+        state.error = null;
+        render();
+      },
+      (err) => { clearTimeout(timeoutId); state.error = "동기화 오류: " + err.message; state.loadingDay = false; render(); }
+    );
+  }
+
+  function subscribeMonth(yearMonth) {
+    if (unsubMonth) { unsubMonth(); unsubMonth = null; }
+    if (!firebaseReady) return;
+    state.loadingMonth = true;
+    const start = `${yearMonth}-01`;
+    const [y, m] = yearMonth.split("-").map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const end = `${yearMonth}-${pad(lastDay)}`;
+    const q = fb.query(
+      fb.collection(db, "days"),
+      fb.where(fb.documentId(), ">=", start),
+      fb.where(fb.documentId(), "<=", end)
+    );
+    const timeoutId = setTimeout(() => {
+      if (state.loadingMonth) {
+        state.error = "Firebase 서버 응답이 없어. 실제 브라우저(사파리)로 열었는지, GitHub Pages 주소로 접속했는지, Firestore Database가 생성됐는지 확인해줘.";
+        state.loadingMonth = false;
+        render();
+      }
+    }, 8000);
+    unsubMonth = fb.onSnapshot(q,
+      (snap) => {
+        clearTimeout(timeoutId);
+        const map = {};
+        snap.forEach((docSnap) => { map[docSnap.id] = docSnap.data().sets || []; });
+        state.monthData = map;
+        state.loadingMonth = false;
+        render();
+      },
+      (err) => { clearTimeout(timeoutId); state.error = "동기화 오류: " + err.message; state.loadingMonth = false; render(); }
+    );
+  }
+
+  /* ---------- actions ---------- */
+  async function handleAdd() {
+    const weight = parseFloat(state.form.weight);
+    const reps = parseInt(state.form.reps, 10);
+    const setCount = parseInt(state.form.setCount, 10) || 1;
+    if (!state.form.exercise.trim() || isNaN(weight) || isNaN(reps)) return;
+
+    const exercise = state.form.exercise.trim();
+    const entry = { id: `${Date.now()}`, exercise, weight, reps, setCount };
+    const newSets = [...state.sets, entry];
+    try {
+      await saveDay(state.date, newSets);
+      await addExerciseToIndex(exercise);
+      const pr = await checkAndSavePr(exercise, weight, reps, state.date);
+      state.prCache[exercise] = pr;
+      await saveLast(exercise, weight, reps);
+      state.form = { exercise: "", weight: "", reps: "", setCount: "" };
+      state.error = null;
+    } catch (e) {
+      state.error = "저장 실패: " + (e.message || "다시 시도해줘.");
+    }
+    render();
+  }
+
+  async function handleDelete(id) {
+    const newSets = state.sets.filter((s) => s.id !== id);
+    try {
+      await saveDay(state.date, newSets);
+      state.error = null;
+    } catch (e) {
+      state.error = "삭제 실패: " + (e.message || "다시 시도해줘.");
+    }
+    render();
+  }
+
+  async function handlePresetPick(dayLabel, exName) {
+    const day = PRESETS.find((d) => d.label === dayLabel);
+    const ex = day.exercises.find((e) => e.name === exName);
+    state.selectedExercise = ex;
+    render();
+    let weight = "";
+    try {
+      const last = await fetchLast(ex.name);
+      if (last) weight = last.weight;
+    } catch {}
+    state.form = {
+      exercise: ex.name,
+      weight: weight === "" ? "" : String(weight),
+      reps: String(ex.reps),
+      setCount: String(ex.setCount),
+    };
+    render();
+  }
+
+  function goToDay(date) {
+    state.view = "day";
+    state.date = date;
+    state.error = null;
+    subscribeDay(date);
+    render();
+  }
+
+  function setMonth(ym) {
+    state.calendarMonth = ym;
+    subscribeMonth(ym);
+    render();
+  }
+
+  async function fetchPrAndCache(name) {
+    if (state.prCache[name] !== undefined || state.prFetching.has(name)) return;
+    state.prFetching.add(name);
+    try {
+      state.prCache[name] = await fetchPr(name);
+    } catch {
+      state.prCache[name] = null;
+    }
+    state.prFetching.delete(name);
+    render();
+  }
+
+  /* ---------- render ---------- */
+  const app = document.getElementById("app");
+
+  function renderSetupBanner() {
+    app.innerHTML = `
+      <div class="page">
+        <header><div class="brand-row"><span style="font-size:18px;">🏋️</span><span class="brand">WORKOUT LOG</span></div></header>
+        <main>
+          <div class="setup-banner">
+            <strong style="color:var(--accent);">Firebase 설정이 필요해요</strong><br/><br/>
+            이 파일 상단 <code>&lt;script&gt;</code> 안의 <code>firebaseConfig</code> 값을
+            본인 Firebase 프로젝트 설정 값으로 교체해줘.<br/><br/>
+            Firebase 콘솔 → 프로젝트 설정 → 일반 → "내 앱" → SDK 설정 및 구성에서 값을 복사할 수 있어.<br/><br/>
+            그리고 Firestore Database를 생성하고(테스트 모드로 시작해도 됨), 보안 규칙을 본인만 쓸 수 있게 설정하는 걸 추천해.
+            ${firebaseInitError && firebaseInitError !== "SETUP_NEEDED" ? `<br/><br/>오류 내용: ${esc(firebaseInitError)}` : ""}
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function renderHeader() {
+    return `
+      <header>
+        <div class="header-top">
+          <div class="brand-row">
+            <span style="font-size:18px;">🏋️</span>
+            <span class="brand">WORKOUT LOG</span>
+          </div>
+          <div class="view-tabs">
+            <button class="view-tab ${state.view === "day" ? "active" : ""}" id="tabDay">일별</button>
+            <button class="view-tab ${state.view === "calendar" ? "active" : ""}" id="tabCalendar">달력</button>
+          </div>
+        </div>
+        ${state.view === "day" ? `
+          <div class="date-nav">
+            <button class="nav-btn" id="prevDay">‹</button>
+            <div class="date-box">
+              <span class="date-label">${esc(fmtDateLabel(state.date))}</span>
+              ${state.date !== todayStr() ? `<button class="today-btn" id="gotoToday">오늘</button>` : ""}
+            </div>
+            <button class="nav-btn" id="nextDay">›</button>
+          </div>
+        ` : `
+          <div class="date-nav">
+            <button class="nav-btn" id="prevMonth">‹</button>
+            <span class="cal-month-label">${esc(monthLabel(state.calendarMonth))}</span>
+            <button class="nav-btn" id="nextMonth">›</button>
+          </div>
+        `}
+      </header>
+    `;
+  }
+
+  function renderSyncBadge() {
+    return `<div class="sync-badge"><span class="sync-dot"></span>Firebase에 실시간 동기화 중 — 다른 기기에서도 같은 기록이 보여</div>`;
+  }
+
+  function renderDayView() {
+    const filteredSuggestions = state.exerciseList.filter(
+      (e) => state.form.exercise && e.toLowerCase().includes(state.form.exercise.toLowerCase()) && e !== state.form.exercise
+    );
+    return `
+      ${renderSyncBadge()}
+      ${state.error ? `<div class="error-banner">${esc(state.error)}</div>` : ""}
+
+      <div class="preset-section">
+        <div class="day-tabs">
+          ${PRESETS.map((day) => `
+            <button class="day-tab ${state.activeDay === day.label ? "active" : ""}" data-day="${esc(day.label)}">${esc(day.label)}</button>
+          `).join("")}
+        </div>
+        ${state.activeDay ? `
+          <div class="chip-wrap">
+            ${PRESETS.find((d) => d.label === state.activeDay).exercises.map((ex) => `
+              <button class="chip ${state.selectedExercise && state.selectedExercise.name === ex.name ? "selected" : ""}" data-pick-day="${esc(state.activeDay)}" data-pick-ex="${esc(ex.name)}">
+                <span class="chip-name">${esc(ex.name)}</span>
+                <span class="chip-target">${ex.reps}회×${ex.setCount}세트</span>
+                ${ex.note ? `<span class="chip-note">${esc(ex.note)}</span>` : ""}
+              </button>
+            `).join("")}
+          </div>
+          ${state.selectedExercise ? `
+            <div class="detail-card">
+              <div class="detail-title">${esc(state.selectedExercise.name)} 운동법</div>
+              <div class="detail-howto">${esc(state.selectedExercise.howTo || "")}</div>
+              <a class="video-link" href="${youtubeSearchUrl(state.selectedExercise.name)}" target="_blank" rel="noopener noreferrer">▶ 유튜브에서 영상 보기</a>
+            </div>
+          ` : ""}
+        ` : ""}
+      </div>
+
+      <div class="form-card">
+        <div class="exercise-wrap">
+          <input class="input-exercise" id="exerciseInput" placeholder="운동 이름 (예: 벤치프레스)" value="${esc(state.form.exercise)}" autocomplete="off" />
+          ${state.showSuggest && filteredSuggestions.length > 0 ? `
+            <div class="suggest-box">
+              ${filteredSuggestions.slice(0, 5).map((s) => `<div class="suggest-item" data-suggest="${esc(s)}">${esc(s)}</div>`).join("")}
+            </div>
+          ` : ""}
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <input class="input-num" id="weightInput" type="number" inputmode="decimal" placeholder="0" value="${esc(state.form.weight)}" />
+            <span class="field-unit">kg</span>
+          </div>
+          <span class="field-sep">×</span>
+          <div class="field-group">
+            <input class="input-num" id="repsInput" type="number" inputmode="numeric" placeholder="0" value="${esc(state.form.reps)}" />
+            <span class="field-unit">회</span>
+          </div>
+          <span class="field-sep">·</span>
+          <div class="field-group">
+            <input class="input-num" id="setCountInput" type="number" inputmode="numeric" placeholder="1" value="${esc(state.form.setCount)}" />
+            <span class="field-unit">세트</span>
+          </div>
+        </div>
+        <button class="add-btn" id="addBtn">+ 기록 추가</button>
+      </div>
+
+      <div class="list-section">
+        ${state.loadingDay ? `<div class="empty-state"><span>불러오는 중...</span></div>` :
+          state.sets.length === 0 ? `<div class="empty-state"><span>이 날 기록이 없어. 위에서 추가해봐.</span></div>` :
+          state.sets.map((s) => {
+            if (state.prCache[s.exercise] === undefined) fetchPrAndCache(s.exercise);
+            const pr = state.prCache[s.exercise];
+            const isPr = pr && pr.weight === s.weight && pr.date === state.date;
+            return `
+              <div class="set-row">
+                <div class="set-main">
+                  <div class="set-name-row">
+                    <span class="set-name">${esc(s.exercise)}</span>
+                    ${isPr ? `<span class="pr-badge">🏆 PR</span>` : ""}
+                  </div>
+                  <div class="set-data">
+                    <span class="set-weight">${s.weight}</span><span class="set-unit">kg</span>
+                    <span class="set-sep">×</span>
+                    <span class="set-weight">${s.reps}</span><span class="set-unit">회</span>
+                    <span class="set-sep">·</span>
+                    <span class="set-unit">${s.setCount}세트</span>
+                  </div>
+                </div>
+                <button class="delete-btn" data-delete="${esc(s.id)}">✕</button>
+              </div>
+            `;
+          }).join("")
+        }
+      </div>
+    `;
+  }
+
+  function renderCalendarView() {
+    const [y, m] = state.calendarMonth.split("-").map(Number);
+    const firstDay = new Date(y, m - 1, 1);
+    const startWeekday = firstDay.getDay();
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(`${y}-${pad(m)}-${pad(d)}`);
+    const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+
+    return `
+      ${renderSyncBadge()}
+      ${state.error ? `<div class="error-banner">${esc(state.error)}</div>` : ""}
+      <div class="cal-legend">
+        ${Object.keys(PART_COLORS).filter((k) => k !== "기타").map((part) => `
+          <div class="cal-legend-item"><span class="cal-legend-dot" style="background:${PART_COLORS[part]}"></span>${esc(part)}</div>
+        `).join("")}
+      </div>
+      <div class="cal-grid">
+        ${weekdays.map((w) => `<div class="cal-weekday">${w}</div>`).join("")}
+        ${state.loadingMonth ? `<div class="empty-state" style="grid-column:1/-1;">불러오는 중...</div>` :
+          cells.map((date) => {
+            if (!date) return `<div class="cal-cell empty"></div>`;
+            const d = parseInt(date.slice(-2), 10);
+            const sets = state.monthData[date] || [];
+            const parts = Array.from(new Set(sets.map((s) => partOf(s.exercise))));
+            const isToday = date === todayStr();
+            const isSelected = date === state.date;
+            const tintStyle = parts.length === 1 && !isSelected ? `background:${hexToRgba(PART_COLORS[parts[0]], 0.16)};` : "";
+            return `
+              <div class="cal-cell ${isToday ? "today" : ""} ${isSelected ? "selected" : ""}" style="${tintStyle}" data-goto-day="${date}">
+                <span class="cal-daynum">${d}</span>
+                <div class="cal-dots">
+                  ${parts.slice(0, 5).map((p) => `<span class="cal-dot" style="background:${PART_COLORS[p]}"></span>`).join("")}
+                </div>
+                ${parts.length > 0 ? `<div class="cal-bar">${parts.map((p) => `<span style="background:${PART_COLORS[p]}"></span>`).join("")}</div>` : ""}
+              </div>
+            `;
+          }).join("")
+        }
+      </div>
+    `;
+  }
+
+  function render() {
+    if (!firebaseReady) { renderSetupBanner(); return; }
+    app.innerHTML = `<div class="page">${renderHeader()}<main>${state.view === "day" ? renderDayView() : renderCalendarView()}</main></div>`;
+    attachEvents();
+  }
+
+  function attachEvents() {
+    const q = (sel) => app.querySelector(sel);
+    const qa = (sel) => app.querySelectorAll(sel);
+
+    const tabDay = q("#tabDay");
+    if (tabDay) tabDay.onclick = () => { state.view = "day"; render(); };
+    const tabCal = q("#tabCalendar");
+    if (tabCal) tabCal.onclick = () => {
+      state.view = "calendar";
+      state.calendarMonth = state.date.slice(0, 7);
+      subscribeMonth(state.calendarMonth);
+      render();
+    };
+
+    const prev = q("#prevDay");
+    if (prev) prev.onclick = () => goToDay(addDays(state.date, -1));
+    const next = q("#nextDay");
+    if (next) next.onclick = () => goToDay(addDays(state.date, 1));
+    const gotoToday = q("#gotoToday");
+    if (gotoToday) gotoToday.onclick = () => goToDay(todayStr());
+
+    const prevMonth = q("#prevMonth");
+    if (prevMonth) prevMonth.onclick = () => setMonth(addMonths(state.calendarMonth, -1));
+    const nextMonth = q("#nextMonth");
+    if (nextMonth) nextMonth.onclick = () => setMonth(addMonths(state.calendarMonth, 1));
+
+    qa("[data-goto-day]").forEach((cell) => {
+      cell.onclick = () => goToDay(cell.getAttribute("data-goto-day"));
+    });
+
+    qa(".day-tab").forEach((btn) => {
+      btn.onclick = () => {
+        const day = btn.getAttribute("data-day");
+        state.activeDay = state.activeDay === day ? null : day;
+        state.selectedExercise = null;
+        render();
+      };
+    });
+
+    qa("[data-pick-day]").forEach((btn) => {
+      btn.onclick = () => handlePresetPick(btn.getAttribute("data-pick-day"), btn.getAttribute("data-pick-ex"));
+    });
+
+    const exInput = q("#exerciseInput");
+    if (exInput) {
+      exInput.oninput = (e) => { state.form.exercise = e.target.value; state.showSuggest = true; render(); focusEnd("exerciseInput"); };
+      exInput.onfocus = () => { state.showSuggest = true; };
+      exInput.onblur = () => { setTimeout(() => { state.showSuggest = false; render(); }, 150); };
+    }
+    qa("[data-suggest]").forEach((el) => {
+      el.onmousedown = () => { state.form.exercise = el.getAttribute("data-suggest"); render(); };
+    });
+
+    const weightInput = q("#weightInput");
+    if (weightInput) weightInput.oninput = (e) => { state.form.weight = e.target.value; };
+    const repsInput = q("#repsInput");
+    if (repsInput) repsInput.oninput = (e) => { state.form.reps = e.target.value; };
+    const setCountInput = q("#setCountInput");
+    if (setCountInput) setCountInput.oninput = (e) => { state.form.setCount = e.target.value; };
+
+    const addBtn = q("#addBtn");
+    if (addBtn) addBtn.onclick = handleAdd;
+
+    qa("[data-delete]").forEach((btn) => {
+      btn.onclick = () => handleDelete(btn.getAttribute("data-delete"));
+    });
+  }
+
+  function focusEnd(id) {
+    const el = document.getElementById(id);
+    if (el) { el.focus(); const v = el.value; el.value = ""; el.value = v; }
+  }
+
+  /* ---------- init ---------- */
+  initFirebase();
+  if (firebaseReady) {
+    subscribeExercises();
+    subscribeDay(state.date);
+  }
+  render();
+})({ initializeApp, getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, documentId });
+</script>
+</body>
+</html>
 
